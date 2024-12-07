@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+<!--      <PackageReference Include="Antlr4" Version="4.6.6">-->
+<!--        <PrivateAssets>all</PrivateAssets>-->
+<!--        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>-->
+<!--      </PackageReference>-->
+      <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.11.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Compilers" Version="4.11.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.11.0" />
+      <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+      <PackageReference Include="System.CodeDom" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="Lang.g4" />
+      <None Remove="HeaderLang\HeaderLang.g4" />
+      <None Update="test.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="test\core.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="test\core.alt.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="test\ext.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="test\ext2.altg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\Core.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\ext.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\ext.alt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\List.alt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\List.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\Core.Recursive.alt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\Core.Recursive.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="test.alt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AltLang\AltLang.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="modules\Core.alt.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+    </ItemGroup>
+
+</Project>

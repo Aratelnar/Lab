@@ -1,0 +1,11 @@
+﻿var #last = (
+    rec f => (#list & List => (
+        match (list) {
+            #ListSeq{head: #last, tail: #ListEnd{},} => last,
+            #ListSeq{head: #b01, tail:#tail,} => f tail,
+            #ListEnd{} => ListEnd{}
+        }
+    ))
+) {
+    last [1,2,3]
+}

@@ -1,0 +1,24 @@
+﻿0 Expr : Obj | 0
+0 Expr : Tuple | 0
+0 Expr : '#' Expr | Template{pattern:0}
+0 Expr : '(' Expr ')' | 1
+0 Expr : Match | 0
+1 Expr : word | !0
+2 Expr : Expr '.' word | Property{object:2,property:!0}
+3 Expr : Expr Expr | Application{function:1,argument:0}
+4 Expr : Expr '&' Expr | And{left:2,right:0}
+5 Expr : Expr '|' Expr | Or{left:2,right:0}
+6 Expr : Func | 0
+6 Func : Expr '=>' Expr | Function{template:2,body:0}
+0 Key : word ':' Expr ',' | {!3:1}
+0 Seq : Key Seq | KeyList{...1,...0}
+0 Seq : | KeyListEnd{}
+0 Obj : '{' Seq '}' | {...1}
+0 Tuple : '(' Seq ')' | Tuple{...1}
+0 Match : 'match' Expr '{' SeqF '}' | Match{argument:3,cases:1}
+0 SeqF : SeqF ',' Func | FuncList{...2,*:0}
+0 SeqF : Func | FuncList{*:0}
+0 Tuple : '(' SeqE ')' | Tuple{...1}
+0 Obj : '{' SeqE '}' | {...1}
+0 SeqE : SeqE Expr ',' | List{...2,*:1}
+0 SeqE : Expr ',' | ListEnd{*:1}

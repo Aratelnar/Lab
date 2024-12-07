@@ -1,0 +1,26 @@
+﻿rule Expr : 'reduce' Expr | Reduce{rule:0}
+rule Obj : '{' Seq '}' | {...1}
+rule Obj : word '{' Seq '}' | !3{...1}
+rule Expr : Obj | 0
+rule Tuple : '(' Seq ')' | Tuple{...1}
+rule Expr : Tuple | 0
+rule Expr : '#' Expr | Template{pattern:0}
+rule Expr : '(' Expr ')' | 1
+rule Match : 'match' Expr '{' SeqF '}' | Match{argument:3,cases:1}
+rule Expr : Match | 0
+rule Expr : word | !0
+rule Expr : Expr '.' word | Property{object:2,property:!0}
+rule Expr : Expr Expr | Application{function:1,argument:0}
+rule Expr : Expr '&' Expr | And{left:2,right:0}
+rule Expr : Expr '|' Expr | Or{left:2,right:0}
+rule Func : Expr '=>' Expr | Function{template:2,body:0}
+rule Key : word ':' Expr ',' | {!3:1}
+rule Seq : Key Seq | KeyList{...1,...0}
+rule Seq : | KeyListEnd{}
+rule SeqF : SeqF ',' Func | FuncList{...2,*:0}
+rule SeqF : Func | FuncList{*:0}
+rule Tuple : '(' SeqE ')' | Tuple{...1}
+rule Obj : '{' SeqE '}' | {...1}
+rule SeqE : SeqE Expr ',' | List{...2,*:1}
+rule SeqE : Expr ',' | ListEnd{*:1}
+rule Expr : Func | 0

@@ -1,0 +1,4 @@
+﻿(
+    reduce ((#Bool) => #True | #False),
+    reduce ((#Var{template:#t,argument:#a,body:#b,}) => ((t => b) a)),
+)
