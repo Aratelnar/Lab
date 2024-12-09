@@ -31,7 +31,7 @@ public record CoreModule : ILangModule
         if (cases is not Structure s) throw new Exception();
         foreach (var (_, func) in s.Children.OrderBy(p => p.Key))
         {
-            if (func is not Structure {Name: "Function"} f)
+            if (func is not Structure { Name: "Function" } f)
                 throw new Exception();
             var vars = Match(reduce(f["template"]), arg);
             if (vars is null) continue;
@@ -43,7 +43,7 @@ public record CoreModule : ILangModule
 
     private SemanticObject ReducePropertyApplication(SemanticObject obj, SemanticObject prop)
     {
-        if (prop is not Word {Name: { } word}) throw new Exception();
+        if (prop is not Word { Name: { } word }) throw new Exception();
         if (obj is not Structure s) throw new Exception();
         if (!s.Children.TryGetValue(word, out var value)) throw new Exception();
         return value;
@@ -52,10 +52,10 @@ public record CoreModule : ILangModule
     private SemanticObject? ReduceApplication(SemanticObject func, SemanticObject arg,
         Func<SemanticObject, SemanticObject> reduce)
     {
-        if (func is not Structure {Name: "Function"} s)
+        if (func is not Structure { Name: "Function" } s)
         {
             var reduced = reduce(func);
-            if (reduced is not Structure {Name: "Function"} s2)
+            if (reduced is not Structure { Name: "Function" } s2)
                 return null;
             s = s2;
         }
@@ -66,15 +66,62 @@ public record CoreModule : ILangModule
 
     private SemanticObject ReplaceVars(SemanticObject body, Dictionary<string, SemanticObject> vars)
     {
-        if (body is Word {Name: { } name})
+        if (body is Word { Name: { } name })
             return vars.GetValueOrDefault(name, body);
 
         if (body is not Structure structure) throw new Exception();
+        if (structure.Name == "Function")
+        {
+            var capt = GetCapturedVars(structure.Children["template"]);
+            return structure with
+            {
+                Children = structure.Children.ToDictionary(p => p.Key, p => ReplaceVars(p.Value,
+                    vars.Where(pv => !capt.Contains(pv.Key)).ToDictionary()))
+            };
+        }
 
         return structure with
         {
             Children = structure.Children.ToDictionary(p => p.Key, p => ReplaceVars(p.Value, vars))
         };
+    }
+
+    private HashSet<string> GetCapturedVars(SemanticObject template)
+    {
+        var result = new HashSet<string>();
+        var queue = new Queue<SemanticObject>();
+        queue.Enqueue(template);
+        while (queue.Count > 0)
+        {
+            var pat = queue.Dequeue();
+            Console.WriteLine($" ----  {pat}");
+            if (pat is not Structure s) throw new Exception();
+            SemanticObject pp = null!;
+            switch (s.Name)
+            {
+                case "Template":
+                    pp = s.Children["pattern"];
+                    break;
+                case "And" or "Or":
+                    foreach (var a in s.Children.Values) queue.Enqueue(a);
+                    continue;
+            }
+            
+            switch (pp)
+            {
+                case Word w:
+                    result.Add(w.Name);
+                    break;
+                case Structure { Children: { } cc }:
+                {
+                    foreach (var temp in cc.Values) queue.Enqueue(temp);
+
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
 
     private Dictionary<string, SemanticObject>? Match(SemanticObject template, SemanticObject arg)

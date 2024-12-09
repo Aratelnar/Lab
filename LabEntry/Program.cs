@@ -60,24 +60,6 @@ internal class Program
         Console.WriteLine(value);
         var red = Reduce(value!, reducers);
         Console.WriteLine(red);
-        // var stack = new Stack<(int, string, SemanticObject)>();
-        // stack.Push((0, "", red));
-        // while (stack.Count > 0)
-        // {
-        //     var (shift, key, curr) = stack.Pop();
-        //     if (curr is Word t)
-        //     {
-        //         Console.WriteLine($"{new string(' ', shift)}{t.Name}");
-        //         continue;
-        //     }
-        //
-        //     if (curr is not Structure s) continue;
-        //     Console.WriteLine($"{new string(' ', shift)}{key} : {s.Name} {{");
-        //     foreach (var (k, val) in s.Children.Reverse())
-        //     {
-        //         stack.Push((shift + 1, k, val));
-        //     }
-        // }
     }
 
     private static (List<ILangModule> reducers, SemanticAutomata finalAutomata) BuildReducers(List<Module> modules)
