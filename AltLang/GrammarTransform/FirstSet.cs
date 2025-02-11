@@ -1,14 +1,15 @@
-using System.Text;
+using AltLang.Domain.Grammar;
+using AltLang.Domain.Grammar.Rules;
 using Lang.Domain;
 
 namespace Lang.GrammarTransform;
 
 public class FirstSet
 {
-    private readonly Grammar _grammar;
+    private readonly IGrammar _grammar;
     private Dictionary<NonTerminal, HashSet<Terminal>> First;
 
-    public FirstSet(Grammar grammar)
+    public FirstSet(IGrammar grammar)
     {
         _grammar = grammar;
         First = new Dictionary<NonTerminal, HashSet<Terminal>>();
@@ -20,7 +21,7 @@ public class FirstSet
         ConstructFirst(grammar);
     }
 
-    private void ConstructFirst(Grammar grammar)
+    private void ConstructFirst(IGrammar grammar)
     {
         var changed = true;
         while (changed)

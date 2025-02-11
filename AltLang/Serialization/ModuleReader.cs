@@ -1,4 +1,7 @@
-﻿using AltLang.Domain.Semantic;
+﻿using System.Xml.Linq;
+using AltLang.Domain.Grammar;
+using AltLang.Domain.Grammar.Rules;
+using AltLang.Domain.Semantic;
 using Lang.Domain;
 using Lang.Domain.Semantic;
 using Lang.Parser;
@@ -12,27 +15,45 @@ public static class ModuleReader
     {
         var lines = module.Split('\n').Select(l => l.Trim());
         var imports = new List<string>();
-        var rules = new HashSet<SemanticRule>();
-        var priority = 0;
+        var rules = new HashSet<Semantic<Prioritized<Rule>>>();
+        short priority = 0;
+
         foreach (var line in lines)
         {
             if (line.StartsWith("import", StringComparison.OrdinalIgnoreCase))
                 imports.Add(line.Split(" ", StringSplitOptions.RemoveEmptyEntries).Last());
-            else if (line.StartsWith("rule", StringComparison.OrdinalIgnoreCase))
-                rules.Add(ReadRule(line[4..], priority++));
+            else
+            {
+                if (line.StartsWith("rule", StringComparison.OrdinalIgnoreCase))
+                {
+                    var (prior, rule) = ReadOptions(line);
+
+                    var semRule = ReadRule(rule);
+                    rules.Add(new Semantic<Prioritized<Rule>>(new Prioritized<Rule>(semRule.Core, prior ?? new Priority(priority++)), semRule.Reduce));
+                }
+            }
         }
 
-        var automata = AutomataBuilder.FromSemanticGrammar(new SemanticGrammar(new NonTerminal("Expr"), rules));
+        var automata = AutomataBuilder.FromSemanticGrammar(new Grammar<Semantic<Prioritized<Rule>>>(new NonTerminal("Expr"), rules));
         return new Module(moduleName, imports, automata);
+
+        (Priority?, string) ReadOptions(string s)
+        {
+            s = s[4..];
+            if (s[0] != '(') return (null, s);
+            var i = s.IndexOf(')');
+            var p = s.Substring(1, i - 1);
+            return (new Priority(p.Split('.').Select(short.Parse).ToArray()), s[(i+1)..]);
+        }
     }
 
-    public static SemanticRule ReadRule(string ruleDefinition, int priority)
+    public static Semantic<Rule> ReadRule(string ruleDefinition)
     {
         var items = ruleDefinition.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         var state = "source";
         NonTerminal source = null!;
         var tokens = new List<Token>();
-        SemanticObjectDefinition definition = null!;
+        ObjectDefinition definition = null!;
         foreach (var item in items)
         {
             switch (state)
@@ -58,7 +79,7 @@ public static class ModuleReader
             }
         }
 
-        return new SemanticRule(new Rule(source, tokens, priority), definition);
+        return new Semantic<Rule>(new Rule(source, tokens), definition);
     }
 
     private static Token GetToken(string item)

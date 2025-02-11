@@ -44,9 +44,6 @@
       <None Update="test\ext2.altg">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="modules\Core.alth">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
       <None Update="modules\ext.alth">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
@@ -59,7 +56,10 @@
       <None Update="modules\List.alth">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="modules\Core.Recursive.alt">
+      <None Update="modules\Core.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="modules\Core.Definitions.alth">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
       <None Update="modules\Core.Recursive.alth">
@@ -79,6 +79,12 @@
 
     <ItemGroup>
       <Compile Update="modules\Core.alt.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="modules\Core.Definitions.alt.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="modules\Core.Recursive.alt.cs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Compile>
     </ItemGroup>

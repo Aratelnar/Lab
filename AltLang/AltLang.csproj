@@ -9,4 +9,8 @@
         <RootNamespace>AltLang</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Folder Include="Parser\LRAutomata\" />
+    </ItemGroup>
+
 </Project>

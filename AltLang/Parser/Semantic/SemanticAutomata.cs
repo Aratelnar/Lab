@@ -1,4 +1,5 @@
-﻿using LabEntry.domain;
+﻿using AltLang.Domain.Grammar;
+using LabEntry.domain;
 using Lang.Domain;
 using Lang.Domain.Semantic;
 using Lang.RuleReader.Semantic;
@@ -9,6 +10,7 @@ public record SemanticAutomata
 {
     public List<SemanticRuleShort> Rules { get; set; } = new();
     public readonly Dictionary<(int, Token), Action> Actions = new();
+    public readonly Dictionary<int, Priority> ExpandPriorities = new();
 
     public NonTerminal Axiom { get; init; }
     public HashSet<Token> KnownTokens { get; set; } = new();
@@ -23,7 +25,7 @@ public record SemanticAutomata
             var state = stack.Peek().Position;
             if (!Actions.TryGetValue((state, token), out var action) &&
                 !Actions.TryGetValue((state, Terminal.Word("")), out action))
-                throw new Exception();
+                return null;
             switch (action)
             {
                 case Reduce:
@@ -76,17 +78,20 @@ public record SemanticAutomata
 
     private record State(int Position, Token Token, SemanticObject? Data);
 
-    public bool ShouldClosure(int state) => Actions.Keys.Where(k => k.Item1 == state).Any(k => k.Item2 == Axiom);
+    public bool ShouldClosure(int state)
+    {
+        return Actions.Keys.Where(k => k.Item1 == state).Any(k => k.Item2 == Axiom);
+    }
 
-    public abstract record Action(int Priority);
+    public abstract record Action(Priority Priority);
 
-    public record Accept() : Action(0);
+    public record Accept() : Action(Priority.Default);
 
-    public record Shift(int NextState, int Priority) : Action(Priority);
+    public record Shift(int NextState, Priority Priority) : Action(Priority);
 
-    public record Reduce(int Rule, int Priority) : Action(Priority);
+    public record Reduce(int Rule, Priority Priority) : Action(Priority);
 
-    private static SemanticObject BuildObject(SemanticObjectDefinition definition, IList<SemanticObject> nodes) =>
+    private static SemanticObject BuildObject(ObjectDefinition definition, IList<SemanticObject> nodes) =>
         definition switch
         {
             WordDefinition wordDefinition => BuildWord(wordDefinition, nodes),
@@ -150,4 +155,4 @@ public record SemanticAutomata
         };
 };
 
-public record SemanticRuleShort(NonTerminal Source, byte Count, SemanticObjectDefinition Reduce);
+public record SemanticRuleShort(NonTerminal Source, byte Count, ObjectDefinition Reduce);

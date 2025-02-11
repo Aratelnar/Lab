@@ -22,3 +22,8 @@ public record RecordHashSet<T>(HashSet<T> Values) : IEnumerable<T>
     public static implicit operator RecordHashSet<T>(HashSet<T> val) => new(val);
     public static implicit operator HashSet<T>(RecordHashSet<T> val) => val.Values;
 }
+
+public static class RecordHashSetExtensions
+{
+    public static RecordHashSet<T> ToRecordHashSet<T>(this HashSet<T> val) => new(val);
+}

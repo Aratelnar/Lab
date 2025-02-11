@@ -1,3 +1,3 @@
 ﻿(
-    reduce (#List => #ListSeq{head:#a01,tail:#a02,} | #ListEnd{}),
+    reduce (#List => #ListSeq{head:#_,tail:#_,} | #ListEnd{}),
 )

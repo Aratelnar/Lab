@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using AltLang.Domain.Grammar;
 using Lang.Domain;
 
 namespace Lang.Lexer;
@@ -16,7 +17,7 @@ public class Lexer
 
     public record Action(bool Final, Func<string, Terminal> GetToken);
 
-    public static Lexer FromGrammar(Grammar grammar)
+    public static Lexer FromGrammar(IGrammar grammar)
     {
         var lexer = new Lexer();
         var keywords = grammar.Rules.SelectMany(r => r.Tokens)
@@ -33,7 +34,7 @@ public class Lexer
     }
 
     private static Predicate<char> IsWord = c =>
-        c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '_';
+        char.IsLetterOrDigit(c) || c == '_';
 
     public IEnumerable<Terminal> Read(string text)
     {

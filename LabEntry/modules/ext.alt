@@ -1,4 +1,26 @@
 ﻿(
     reduce ((#Bool) => #True | #False),
-    reduce ((#Var{template:#t,argument:#a,body:#b,}) => ((t => b) a)),
+    (def id = (#a => a)),
+    (def map = (rec self => #!(f,list,) => match (list) {
+        #!(head :: tail) => ((f head) :: (self (f,tail,))),
+        #[] => []
+    })),
+    (def zip = (rec self => #list =>
+        let #safeTail = (#l => match (l) {
+            #!(_::t1)=>t1,
+            #[] => None{}
+        }) in (
+        let #safeHead = (#l => match (l) {
+            #!(h1::_)=>h1,
+            #[] => None{}
+        }) in (
+        let #h = map (safeHead,list,) in (
+        let #t = map (safeTail,list,) in (
+            match (h) {
+                            #[] => [],
+                            #!(None{}::_) => h,
+                            #!(_::_)=>(h :: (self t))
+                        }
+        ))))
+    )),
 )

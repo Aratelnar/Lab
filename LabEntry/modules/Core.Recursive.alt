@@ -1,5 +1,0 @@
-﻿(
-    reduce ((#Application{function:#RecFunction{self:#s, body:#body,},argument:#arg,}) => (
-                                                                                              ((#b => (s => b))(body arg))(RecFunction{self:s,body:body,}))
-                                                                                          )),
-)

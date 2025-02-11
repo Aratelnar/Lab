@@ -1,0 +1,81 @@
+﻿using AltLang;
+using LabEntry.domain;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using AltLang.Domain.Semantic;
+using static AltLang.Domain.Semantic.Constructor;
+namespace LabEntry.core;
+
+public class CoreDefinitionsModule : ILangModule
+{
+    public string ModuleName => "Core.Definitions";
+
+    public void Register(ModuleContext context)
+    {
+        var letDefine = StructureBuild.New("LetDefine")
+            .Child("body", Any)
+            .Child("argument", Any)
+            .Child("template", Any);
+
+        context.ModuleToReduce.Register(AsTemplate(StructureBuild.New("Calc").Child("expr", Any)), this);
+        context.ModuleToReduce.Register(AsTemplate(letDefine), this);
+
+        context.ModuleToSubstitute.Register(AsTemplate(letDefine), this);
+    }
+
+    public SemanticObject? Reduce(SemanticObject obj, ModuleContext context)
+    {
+        Console.WriteLine($"[{ModuleName}][reduce] {Print(obj)}");
+        return obj switch
+        {
+            Structure {Name: "Calc", Children: var c} => context.Reduce(c["expr"]) switch
+            {
+                Structure s => ApplyToChildren(s,
+                    c1 => context.Reduce(new Structure("Calc",
+                        new Dictionary<string, SemanticObject> {["expr"] = c1}))),
+                var a => a
+            },
+            Structure {Name: "LetDefine"} s => context.Reduce(Application(Function(s["template"], s["body"]),
+                s["argument"])),
+            _ => null
+        };
+    }
+
+    public Dictionary<string, SemanticObject>?
+        Match(SemanticObject template, SemanticObject obj, ModuleContext context) => null;
+
+    public SemanticObject? Substitute(SemanticObject obj, Dictionary<string, SemanticObject> vars,
+        ModuleContext context)
+    {
+        Console.WriteLine($"[{ModuleName}][substitute] {Print(obj)} <<- {Print(new Structure("", vars))}");
+        switch (obj)
+        {
+            case Structure {Name: "LetDefine"} s:
+                var escaped = GetEscapedVars(s["template"]);
+                var allowedVars = vars.Where(v => !escaped.Contains(v.Key)).ToDictionary();
+                return ApplyToChildren(s, c => context.Substitute(c, allowedVars));
+            default:
+                return null;
+        }
+    }
+
+    private HashSet<string> GetEscapedVars(SemanticObject template) =>
+        template switch
+        {
+            Structure {Name: "TemplateRec"} s => s["pattern"] switch
+            {
+                Word w => [w.Name],
+                Structure ss => ApplyToChildren(ss, TemplateRec).Children.Values.SelectMany(GetEscapedVars).ToHashSet()
+            },
+            Structure {Name: "Template"} s => s["pattern"] switch
+            {
+                Word w => [w.Name],
+                Structure {Children: { } c} => c.Values.SelectMany(GetEscapedVars).ToHashSet(),
+                _ => []
+            },
+            Structure {Name: "Or" or "And", Children: { } c} =>
+                c.Values.SelectMany(GetEscapedVars).ToHashSet(),
+            _ => []
+        };
+}

@@ -1,5 +1,6 @@
 ﻿import Core
-rule Expr : '[' ]' | ListEnd{}
+rule Expr : Expr '::' Expr | ListSeq{head:2,tail:0}
+rule Expr : '[' ']' | ListEnd{}
 rule Expr : '[' Seq ']' | 1
 rule Seq : Expr ',' Seq | ListSeq{head:2,tail:0}
 rule Seq : Expr | ListSeq{head:0,tail:ListEnd{}}

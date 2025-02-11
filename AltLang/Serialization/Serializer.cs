@@ -1,5 +1,7 @@
 ﻿using System.Collections;
+using System.Collections.ObjectModel;
 using System.Text;
+using AltLang.Domain.Grammar;
 using AltLang.Domain.Semantic;
 using LabEntry.domain;
 using Lang.Domain;
@@ -11,38 +13,62 @@ namespace Lang.RuleReader;
 
 public static class Serializer
 {
-    public static void Serialize(BinaryWriter writer, Module module)
-    {
-        writer.Write(module.Name);
-        writer.Write((byte)module.Imports.Count);
-        foreach (var import in module.Imports) writer.Write(import);
-        WriteSemanticAutomata(writer, module.Automata);
-    }
-
     #region Write
 
-    private static void WriteSemanticAutomata(BinaryWriter writer, SemanticAutomata automata)
+    public static void Write(this BinaryWriter writer, Module module)
     {
-        writer.Write((byte)automata.KnownTokens.Count);
-        foreach (var token in automata.KnownTokens) WriteToken(writer, token);
-        writer.Write((byte) 127);
-        WriteRules(writer, automata);
-        writer.Write((byte) 127);
-        writer.Write('\n');
-        WriteAutomata(writer, automata);
+        writer.Write(module.Name);
+        writer.Write(module.Imports.AsReadOnly());
+        writer.Write(module.Automata);
     }
 
-    private static void WriteRules(BinaryWriter writer, SemanticAutomata automata)
+    private static void Write<T>(this BinaryWriter writer, HashSet<T> items)
     {
-        foreach (var rule in automata.Rules)
+        writer.Write(items.Count);
+        foreach (var item in items)
+            writer.Write(item);
+    }
+
+    private static void Write<T>(this BinaryWriter writer, ReadOnlyCollection<T> items)
+    {
+        writer.Write(items.Count);
+        foreach (var item in items)
+            writer.Write(item);
+    }
+
+    private static void Write<T>(this BinaryWriter writer, T item)
+    {
+        switch (item)
         {
-            writer.Write(rule.Count);
-            writer.Write(rule.Source.Name);
-            WriteSemantic(writer, rule.Reduce);
+            case string s:
+                writer.Write(s);
+                break;
+            case Token token:
+                writer.Write(token);
+                break;
+            case SemanticRuleShort token:
+                writer.Write(token);
+                break;
+            default:
+                throw new NotImplementedException();
         }
     }
 
-    private static void WriteSemantic(BinaryWriter writer, SemanticObjectDefinition definition)
+    private static void Write(this BinaryWriter writer, SemanticAutomata automata)
+    {
+        writer.Write(automata.KnownTokens);
+        writer.Write(automata.Rules.AsReadOnly());
+        writer.Write(automata.Actions);
+    }
+
+    private static void Write(this BinaryWriter writer, SemanticRuleShort rule)
+    {
+        writer.Write(rule.Count);
+        writer.Write(rule.Source.Name);
+        writer.Write(rule.Reduce);
+    }
+
+    private static void Write(this BinaryWriter writer, ObjectDefinition definition)
     {
         void WriteStructure(StructureDefinition def)
         {
@@ -85,11 +111,11 @@ public static class Serializer
                 case ExplicitPropertyDefinition exp:
                     writer.Write("e"u8);
                     WriteWord(exp.Key);
-                    WriteSemantic(writer, exp.Object);
+                    Write(writer, exp.Object);
                     break;
                 case NamelessPropertyDefinition nameless:
                     writer.Write("n"u8);
-                    WriteSemantic(writer, nameless.Object);
+                    Write(writer, nameless.Object);
                     break;
                 case SpreadPropertyDefinition spread:
                     writer.Write("s"u8);
@@ -109,23 +135,24 @@ public static class Serializer
         }
     }
 
-    private static void WriteAutomata(BinaryWriter writer, SemanticAutomata automata)
+    private static void Write(this BinaryWriter writer, Dictionary<(int, Token), SemanticAutomata.Action> actions)
     {
-        var stateToActions = automata.Actions.GroupBy(i => i.Key.Item1).OrderBy(g => g.Key);
+        var stateToActions = actions.GroupBy(i => i.Key.Item1).OrderBy(g => g.Key);
         foreach (var group in stateToActions)
         {
             foreach (var ((_, token), action) in group)
             {
-                WriteToken(writer, token);
-                WriteAction(writer, action);
+                writer.Write(token);
+                writer.Write(action);
             }
 
             writer.Write('\n');
         }
     }
 
-    private static void WriteAction(BinaryWriter writer, SemanticAutomata.Action action)
+    private static void Write(this BinaryWriter writer, SemanticAutomata.Action action)
     {
+        writer.Write(action.Priority);
         switch (action)
         {
             case SemanticAutomata.Reduce r:
@@ -140,7 +167,9 @@ public static class Serializer
         }
     }
 
-    private static void WriteToken(BinaryWriter writer, Token token)
+    private static void Write(this BinaryWriter writer, Priority priority) => writer.Write(priority.Items.AsReadOnly());
+
+    private static void Write(this BinaryWriter writer, Token token)
     {
         writer.Write(token switch
         {
@@ -214,8 +243,8 @@ public static class Serializer
             SemanticAutomata.Action act = num switch
             {
                 int.MinValue => new SemanticAutomata.Accept(),
-                < 0 => new SemanticAutomata.Reduce(~num, 0),
-                _ => new SemanticAutomata.Shift(num, 0)
+                < 0 => new SemanticAutomata.Reduce(~num, Priority.Default), // todo
+                _ => new SemanticAutomata.Shift(num, Priority.Default)
             };
             yield return descr switch
             {
@@ -253,7 +282,7 @@ public static class Serializer
         }
     }
 
-    private static SemanticObjectDefinition ReadDefinition(BinaryReader reader)
+    private static ObjectDefinition ReadDefinition(BinaryReader reader)
     {
         WordDefinition ReadWord(BinaryReader reader, bool skipPrefix = false)
         {

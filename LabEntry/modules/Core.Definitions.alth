@@ -1,0 +1,4 @@
+﻿rule(0) Expr : 'reduce' Expr | Reduce{rule:0}
+rule(0) Expr : 'def' word '=' Expr | Define{name:!2,value:0}
+rule(255) Expr : 'let' Expr '=' Expr 'in' Expr | LetDefine{template:4,argument:2,body:0}
+rule(0) Expr : 'calc' Expr | Calc{expr:0}

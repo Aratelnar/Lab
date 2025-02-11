@@ -1,6 +1,15 @@
 ﻿import Core
-rule Expr : Var | 0
-rule Var : 'var' Expr '=' Expr '{' Expr '}' | Var{template:5,argument:3,body:1}
+import List
+import Core.Recursive
 rule Expr : 'Bool' | Bool{}
 rule Expr : 'True' | True{}
 rule Expr : 'False' | False{}
+rule Expr : 'Coord' | Coord{}
+rule Expr : 'Point' | Point{}
+rule Expr : 'F' | F{}
+rule Expr : 'Sf' | Sf{}
+rule Expr : 'S' | S{}
+rule Expr : 'Succ(' Expr ')' | Succ{prev:1}
+rule Expr : 'Fill(' Expr ',' Expr ')' | Fill{base:3,ext:1}
+rule Expr : 'SemiFill(' Expr ',' Expr ')' | SemiFill{base:3,ext:1}
+rule Expr : 'Simplex(' Expr ')' | Simplex{base:1}

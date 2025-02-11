@@ -1,102 +1,99 @@
-﻿using LabEntry.domain;
+﻿using AltLang.Domain.Semantic;
+using LabEntry.domain;
 
 namespace AltLang;
 
-public record AltModule(string ModuleName, SemanticObject Reducers) : ILangModule
+public record AltModule : ILangModule
 {
-    public SemanticObject? Reduce(SemanticObject obj, Func<SemanticObject, SemanticObject> reduce)
+    public AltModule(string ModuleName, SemanticObject Reducers)
     {
-        if (Reducers is not Structure {Children: { } c}) return null;
-        foreach (var reducer in c.Values)
+        this.ModuleName = ModuleName;
+        this.Reducers = (Reducers as Structure)?.Children.Values.ToList() ?? [];
+        return;
+    }
+
+    #region Reduce
+
+    public void Register(ModuleContext context)
+    {
+        foreach (var reducer in Reducers)
         {
-            if(reducer is not Structure {Name:"Reduce", Children: {} cc}) continue;
-            if(!cc.TryGetValue("rule", out var rule)) continue;
-            var reduced = TryReduceApplication(rule, obj, reduce);
-            if(reduced is null) continue;
-            return reduce(reduced);
+            switch (reducer)
+            {
+                case Structure {Name: "Reduce", Children: { } cc}:
+                    if (!cc.TryGetValue("rule", out var rule)) continue;
+                    if (rule is not Structure {Name: "Function"} s) continue;
+                    context.ModuleToReduce.Register(TypeObject.FromSemanticObject(s["template"]), this);
+                    break;
+                case Structure {Name: "Define", Children: { } cc2}:
+                    if (!cc2.TryGetValue("name", out var name) || name is not Word w) continue;
+                    context.ModuleToReduce.RegisterWord(w, this);
+                    break;
+            }
+        }
+    }
+
+    public SemanticObject? Reduce(SemanticObject obj, ModuleContext context)
+    {
+        Console.WriteLine($"[{ModuleName}][reduce] {Constructor.Print(obj)}");
+        foreach (var reducer in Reducers)
+        {
+            switch (reducer)
+            {
+                case Structure {Name: "Reduce", Children: { } cc}:
+                    if (!cc.TryGetValue("rule", out var rule)) continue;
+                    var result = TryApplyApplication(rule, obj, context);
+                    if (result is null) continue;
+                    return context.Reduce(result);
+                case Structure {Name: "Define", Children: { } cc2}:
+                    if (!cc2.TryGetValue("name", out var name) || name is not Word w) continue;
+                    if (!cc2.TryGetValue("value", out var val)) continue;
+                    if (obj is Word w2 && w2.Name == w.Name) return val;
+                    break;
+            }
         }
 
         return null;
     }
 
-    private SemanticObject? TryReduceApplication(SemanticObject func, SemanticObject arg,
-        Func<SemanticObject, SemanticObject> reduce)
+    private SemanticObject? TryApplyApplication(SemanticObject function, SemanticObject arg, ModuleContext context)
     {
-        if (func is not Structure {Name: "Function"} s)
+        if (function is not Structure {Name: "Function"} s)
         {
-            var reduced = reduce(func);
-            if (reduced is not Structure {Name: "Function"} s2)
-                throw new Exception();
+            var reducedFunction = context.Reduce(function);
+            if (reducedFunction is not Structure {Name: "Function"} s2)
+                return null;
             s = s2;
         }
 
-        var vars = Match(s["template"], arg);
-        return vars != null ? reduce(ReplaceVars(s["body"], vars)) : null;
+        var vars = context.Match(s["template"], arg);
+        return vars != null ? context.Substitute(s["body"], vars) : null;
     }
 
-    private SemanticObject ReplaceVars(SemanticObject body, Dictionary<string, SemanticObject> vars)
+    #endregion
+
+    #region Match
+
+    public Dictionary<string, SemanticObject>? Match(SemanticObject template, SemanticObject obj, ModuleContext context)
     {
-        if (body is Word {Name: { } name})
-            return vars.GetValueOrDefault(name, body);
-
-        if (body is not Structure structure) throw new Exception();
-
-        return structure with
-        {
-            Children = structure.Children.ToDictionary(p => p.Key, p => ReplaceVars(p.Value, vars))
-        };
+        Console.WriteLine($"[{ModuleName}][match] {template} <<= {obj}");
+        return null;
     }
 
-    private Dictionary<string, SemanticObject>? Match(SemanticObject template, SemanticObject arg)
+    #endregion
+
+    #region Substitute
+
+    public SemanticObject? Substitute(SemanticObject obj, Dictionary<string, SemanticObject> vars,
+        ModuleContext context)
     {
-        if (template is not Structure s) throw new Exception();
-        switch (s.Name)
-        {
-            case "Template":
-                return MatchTemplate(s, arg);
-            case "And":
-                var left = Match(s["left"], arg);
-                var right = Match(s["right"], arg);
-                if (right is null) return null;
-                return left?.Concat(right).GroupBy(p => p.Key)
-                    .ToDictionary(g => g.Key, g => g.Last().Value);
-            case "Or":
-                var left2 = Match(s["left"], arg);
-                var right2 = Match(s["right"], arg);
-                return left2 ?? right2;
-            default:
-                throw new Exception();
-        }
+        Console.WriteLine($"[{ModuleName}][substitute] {obj} <<- {new Structure("", vars)}");
+        return null;
     }
 
-    private Dictionary<string, SemanticObject>? MatchTemplate(Structure template, SemanticObject arg)
-    {
-        if (template["pattern"] is Word w)
-        {
-            return new Dictionary<string, SemanticObject>()
-            {
-                [w.Name] = arg
-            };
-        }
+    #endregion
 
-        var pattern = (template["pattern"] as Structure)!;
-        if (arg is not Structure a) throw new Exception();
 
-        if (!string.IsNullOrEmpty(pattern.Name) && pattern.Name != a.Name)
-            return null;
-        var strict = pattern.Name is not "";
-        var dictionary = new List<KeyValuePair<string, SemanticObject>>();
-        foreach (var (key, value) in pattern.Children)
-        {
-            if (!a.Children.ContainsKey(key)) return null;
-            var res = Match(value, a[key]);
-            if (res == null) return null;
-            dictionary.AddRange(res);
-        }
-
-        if (strict && a.Children.Keys.Except(pattern.Children.Keys).Any())
-            return null;
-        return dictionary.GroupBy(p => p.Key)
-            .ToDictionary(g => g.Key, g => g.Last().Value);
-    }
+    public string ModuleName { get; init; }
+    public List<SemanticObject> Reducers { get; init; }
 }

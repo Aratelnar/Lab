@@ -2,22 +2,25 @@
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
+using System.Security.Authentication.ExtendedProtection;
+using System.Text.RegularExpressions;
 using AltLang;
+using AltLang.Domain.Grammar;
+using AltLang.Domain.Semantic;
 using Antlr4.Runtime;
+using LabEntry.core;
 using LabEntry.domain;
 using Lang.Domain;
 using Lang.Domain.Semantic;
 using Lang.GrammarTransform;
 using Lang.Parser;
+using Lang.Parser.LRAutomata;
 using Lang.Parser.Semantic;
 using Lang.RuleReader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CSharp;
 using Lexer = Lang.Lexer.Lexer;
 using Module = AltLang.Domain.Semantic.Module;
-using Token = Lang.Domain.Token;
 
 internal class Program
 {
@@ -34,7 +37,6 @@ internal class Program
         //     Console.WriteLine($"{key}: {value}");
         // }
 
-        var axiom = new NonTerminal("Expr");
         var sw = new Stopwatch();
         var modules = new List<Module>();
         foreach (var headerFile in Directory.EnumerateFiles("modules", "*.alth", SearchOption.AllDirectories))
@@ -50,34 +52,47 @@ internal class Program
         modules.Add(new Module("MainProgram", modules.Select(i => i.Name).ToList(), AutomataBuilder.EmptyAutomata));
         var (reducers, finalAutomata) = BuildReducers(modules);
 
-        var input = File.ReadAllText("test.alt");
         var keywords = finalAutomata.KnownTokens.Where(t => t is Terminal {Type: TerminalType.Keyword}).Cast<Terminal>()
             .Select(i => i.Token);
-        var text = Lexer.FromKeywords(keywords).Read(input).ToList();
+        // var input = File.ReadAllText("test.alt");
+        // var text = Lexer.FromKeywords(keywords).Read(input).ToList();
 
-        var value = finalAutomata.Read(text);
-        Console.WriteLine($"read text {sw.ElapsedMilliseconds}");
-        Console.WriteLine(value);
-        var red = Reduce(value!, reducers);
-        Console.WriteLine(red);
-        // var stack = new Stack<(int, string, SemanticObject)>();
-        // stack.Push((0, "", red));
-        // while (stack.Count > 0)
-        // {
-        //     var (shift, key, curr) = stack.Pop();
-        //     if (curr is Word t)
-        //     {
-        //         Console.WriteLine($"{new string(' ', shift)}{t.Name}");
-        //         continue;
-        //     }
-        //
-        //     if (curr is not Structure s) continue;
-        //     Console.WriteLine($"{new string(' ', shift)}{key} : {s.Name} {{");
-        //     foreach (var (k, val) in s.Children.Reverse())
-        //     {
-        //         stack.Push((shift + 1, k, val));
-        //     }
-        // }
+        // var value = finalAutomata.Read(text);
+        // Console.WriteLine($"read text {sw.ElapsedMilliseconds}");
+        // Console.WriteLine(value);
+        var context = GetContext(reducers);
+        // Console.WriteLine(context.Reduce(value!));
+        var lexer = Lexer.FromKeywords(keywords);
+        var currentModule = reducers.First(r => r.ModuleName == "MainProgram") as AltModule;
+        while (true)
+        {
+            Console.Write("> ");
+            var line = Console.ReadLine() ?? "";
+            var text = lexer.Read(line).ToList();
+            var value = finalAutomata.Read(text);
+            if (value is Structure {Name: "Reduce" or "Define"})
+            {
+                currentModule.Reducers.Add(value);
+                switch (value)
+                {
+                    case Structure {Name: "Reduce", Children: { } cc}:
+                        if (!cc.TryGetValue("rule", out var rule)) continue;
+                        if (rule is not Structure {Name: "Function"} s) continue;
+                        context.ModuleToReduce.Register(TypeObject.FromSemanticObject(s["template"]), currentModule);
+                        break;
+                    case Structure {Name: "Define", Children: { } cc2}:
+                        if (!cc2.TryGetValue("name", out var name) || name is not Word w) continue;
+                        context.ModuleToReduce.RegisterWord(w, currentModule);
+                        break;
+                }
+            }
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(Constructor.Print(value));
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            if (value != null)
+                Console.WriteLine(Constructor.Print(context.Reduce(value)));
+            Console.ForegroundColor = ConsoleColor.Gray;
+        }
     }
 
     private static (List<ILangModule> reducers, SemanticAutomata finalAutomata) BuildReducers(List<Module> modules)
@@ -98,6 +113,8 @@ internal class Program
     private static ILangModule CreateReducer(string moduleName, SemanticAutomata automata)
     {
         var path = Directory.EnumerateFiles("modules/", $"{moduleName}.alth").FirstOrDefault("");
+        if (moduleName == "Core") return new CoreModule();
+        if (moduleName == "Core.Definitions") return new CoreDefinitionsModule();
         if (File.Exists(path.Replace(".alth", ".alt")))
         {
             var rText = File.ReadAllText(path.Replace(".alth", ".alt"));
@@ -178,11 +195,10 @@ internal class Program
         Console.WriteLine($"density: {automata.Actions.Count * 1.0 / (width * height)}");
     }
 
-    private static SemanticObject Reduce(SemanticObject node, List<ILangModule> reducers)
+    private static ModuleContext GetContext(List<ILangModule> modules)
     {
-        SemanticObject ReduceInternal(SemanticObject n) =>
-            reducers.Select(reducer => reducer.Reduce(n, ReduceInternal)).FirstOrDefault(i => i is not null) ?? n;
-
-        return ReduceInternal(node);
+        var context = new ModuleContext();
+        foreach (var module in modules) module.Register(context);
+        return context;
     }
 }

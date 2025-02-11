@@ -1,4 +1,4 @@
-﻿namespace Lang.Domain;
+﻿namespace AltLang.Domain.Grammar;
 
 public record NonTerminal(string Name) : Token
 {

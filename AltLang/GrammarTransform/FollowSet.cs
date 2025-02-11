@@ -1,25 +1,27 @@
-﻿using Lang.Domain;
+﻿using AltLang.Domain.Grammar;
+using Lang.Domain;
 
 namespace Lang.GrammarTransform;
 
-public class FollowSet 
+
+public class FollowSet
 {
     private FirstSet FirstSet;
     private Dictionary<NonTerminal, HashSet<Terminal>> Follow;
 
-    public FollowSet(Grammar grammar)
+    public FollowSet(IGrammar grammar)
     {
         FirstSet = new FirstSet(grammar);
         Follow = new Dictionary<NonTerminal, HashSet<Terminal>>();
         foreach (var nonTerminal in grammar.GetAllSources())
         {
-            Follow[nonTerminal] = new HashSet<Terminal>();
+            Follow[nonTerminal] = [];
         }
 
         ConstructFollow(grammar);
     }
 
-    private void ConstructFollow(Grammar grammar)
+    private void ConstructFollow(IGrammar grammar)
     {
         var changed = true;
         Follow[grammar.Axiom].Add(Terminal.End);
@@ -38,8 +40,8 @@ public class FollowSet
                     var forFirst = tokens[(index + 1)..].ToList();
                     var next = forFirst.Count > 0
                         ? FirstSet.GetFirstSet(forFirst)
-                        : new HashSet<Terminal> {Terminal.Lambda};
-                    Follow[nonTerminal].UnionWith(next.Except(new[] {Terminal.Lambda}));
+                        : [Terminal.Lambda];
+                    Follow[nonTerminal].UnionWith(next.Except([Terminal.Lambda]));
                     if (next.Contains(Terminal.Lambda))
                     {
                         Follow[nonTerminal].UnionWith(Follow[rule.Source]);

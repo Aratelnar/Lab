@@ -1,11 +1,10 @@
-﻿import Core.Definitions
+﻿rule(0) Expr : 'reduce' Expr | Reduce{rule:0}
 rule(0) Expr : Obj | 0
 rule(0) Expr : Tuple | 0
 rule(0) Expr : '#' Expr | Template{pattern:0}
-rule(0) Expr : '#!' Expr | TemplateRec{pattern:0}
 rule(0) Expr : '(' Expr ')' | 1
 rule(0) Expr : Match | 0
-rule(255.1) Expr : word | !0
+rule(0) Expr : word | !0
 rule(1) Expr : Expr '.' word | Property{object:2,property:!0}
 rule(2) Expr : Expr Expr | Application{function:1,argument:0}
 rule(3) Expr : Expr '&' Expr | And{left:2,right:0}

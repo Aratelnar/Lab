@@ -1,4 +1,6 @@
 ﻿using System.Text.RegularExpressions;
+using AltLang.Domain.Grammar;
+using AltLang.Domain.Grammar.Rules;
 using LabEntry.domain;
 using Lang.Domain;
 using Lang.Domain.Semantic;
@@ -11,15 +13,15 @@ public class RuleReader
 {
     private static Regex Whitespace = new(@"\s", RegexOptions.Compiled);
 
-    public static Rule Read(string line)
+    public static Prioritized<Rule> Read(string line)
     {
         var split = Whitespace.Split(line);
         return CreateRule(split);
     }
 
-    private static Rule CreateRule(string[] tokens)
+    private static Prioritized<Rule> CreateRule(string[] tokens)
     {
-        var priority = int.Parse(tokens[0]);
+        var priority = short.Parse(tokens[0]);
         tokens = tokens[1..];
         if (tokens[1] != ":") throw new ArgumentException();
         var source = new NonTerminal(tokens[0]);
@@ -29,18 +31,18 @@ public class RuleReader
                     ? Terminal.Word("")
                     : new NonTerminal(s))
             .ToList();
-        return new Rule(source, t, priority);
+        return new Prioritized<Rule>(new Rule(source, t), new Priority(priority));
     }
 
-    public static SemanticRule ReadSemantic(string line)
+    public static Semantic<Prioritized<Rule>> ReadSemantic(string line)
     {
         var split = line.Split(" | ", 2, StringSplitOptions.TrimEntries);
         var core = CreateRule(Whitespace.Split(split[0]));
         var def = ObjectDefinitionReader.Read(split[1]);
-        return new SemanticRule(core, def);
+        return new Semantic<Prioritized<Rule>>(core, def);
     }
 
-    private static SemanticObject BuildObject(SemanticObjectDefinition definition, IList<SemanticObject> nodes) =>
+    private static SemanticObject BuildObject(ObjectDefinition definition, IList<SemanticObject> nodes) =>
         definition switch
         {
             WordDefinition wordDefinition => BuildWord(wordDefinition, nodes),

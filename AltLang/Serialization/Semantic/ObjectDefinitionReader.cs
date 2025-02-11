@@ -5,7 +5,7 @@ namespace Lang.RuleReader.Semantic;
 
 public static class ObjectDefinitionReader
 {
-    public static SemanticObjectDefinition Read(string text)
+    public static ObjectDefinition Read(string text)
     {
         var position = 0;
         return ReadStruct(text, ref position);
@@ -22,7 +22,7 @@ public static class ObjectDefinitionReader
         return new StructureNameDefinition(number);
     }
 
-    private static SemanticObjectDefinition ReadStruct(string text, ref int position)
+    private static ObjectDefinition ReadStruct(string text, ref int position)
     {
         if (char.IsDigit(text[position]))
             return new StructureNumberDefinition(ReadInt(text, ref position));
