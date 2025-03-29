@@ -14,23 +14,12 @@
         #!(head :: tail) => f (head, self tail,)
     }))),
     (def any = (#!(pred, list,) => (fold or) False (map pred list))),
-    (def zip = (rec self . #list =>
-        let #safeTail = (#l => match (l) {
-            #!(_::t1)=>t1,
-            #[] => None{}
-        }) in
-        let #safeHead = (#l => match (l) {
-            #!(h1::_)=>h1,
-            #[] => None{}
-        }) in
-        let #h = map safeHead list in
-        let #t = map safeTail list in
-            match (h) {
-                #[] => [],
-                #!(None{}::_) => [],
-                #!(_::_)=>(h :: (self t))
-            }
-
+    (def zip = (rec self. #list =>
+        match (list) {
+            #[] => [],
+            #!([]::_) => [],
+            #!(h::t) => (map (#l => l.head) list) :: (self (map (#l => l.tail) list))
+        }
     )),
     (def add = (#!(a,b,) => a+b)),
 )

@@ -204,8 +204,7 @@ public class AutomataBuilder
             IEnumerable<(int, SemanticAutomata.Action)> SelectState((int au, int st) p)
             {
                 return automataList[p.au].Actions.TryGetValue((p.st, token), out var act) ||
-                       (!automataList[p.au].KnownTokens.Contains(token) &&
-                        automataList[p.au].Actions.TryGetValue((p.st, Terminal.Lambda), out act))
+                       automataList[p.au].Actions.TryGetValue((p.st, Terminal.Lambda), out act)
                     ? [(p.au, act)]
                     : [];
             }
