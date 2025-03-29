@@ -1,7 +1,7 @@
 ﻿import Core
-rule Expr : Expr '::' Expr | ListSeq{head:2,tail:0}
-rule Expr : '[' ']' | ListEnd{}
-rule Expr : '[' Seq ']' | 1
-rule Seq : Expr ',' Seq | ListSeq{head:2,tail:0}
-rule Seq : Expr | ListSeq{head:0,tail:ListEnd{}}
-rule Expr : 'List' | List{}
+rule(4.2) Expr : Expr '::' Expr | ListSeq{head:2,tail:0}
+rule(0) Expr : '[' ']' | ListEnd{}
+rule(0) Expr : '[' Seq ']' | 1
+rule(0) Seq : Expr ',' Seq | ListSeq{head:2,tail:0}
+rule(0) Seq : Expr | ListSeq{head:0,tail:ListEnd{}}
+rule(0) Expr : 'List' | List{}

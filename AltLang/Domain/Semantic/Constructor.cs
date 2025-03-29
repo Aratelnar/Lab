@@ -1,9 +1,14 @@
-﻿using LabEntry.domain;
+﻿using AltLang.Domain.Semantic;
+using AltLang.Domain.Semantic.Explicit;
+using Lang.Util;
+using Word = AltLang.Domain.Semantic.Word;
 
-namespace AltLang.Domain.Semantic;
+namespace AltLang.Domain;
 
-public static class Constructor
+public static partial class Constructor
 {
+    public static Structure Object(IEnumerable<SemanticObject> elems) => new("",
+        elems.Select((e, i) => ($"_{i}", e)).ToMap());
     public static Structure TemplateRec(SemanticObject pattern) =>
         new("TemplateRec", new Dictionary<string, SemanticObject> {["pattern"] = pattern});
 
@@ -25,8 +30,8 @@ public static class Constructor
     public static Structure Match(SemanticObject argument, SemanticObject cases) =>
         new("Match", new Dictionary<string, SemanticObject> {["argument"] = argument, ["cases"] = cases});
 
-    public static Structure RecFunction(SemanticObject self, SemanticObject body) =>
-        new("RecFunction", new Dictionary<string, SemanticObject> {["self"] = self, ["body"] = body});
+    public static Structure Rec(SemanticObject self, SemanticObject body) =>
+        new("Rec", new Dictionary<string, SemanticObject> {["self"] = self, ["body"] = body});
 
     public static Structure Or(SemanticObject left, SemanticObject right) =>
         new("Or", new Dictionary<string, SemanticObject> {["left"] = left, ["right"] = right});
@@ -35,16 +40,16 @@ public static class Constructor
     public static Word Any => new("");
 
     public static Structure ApplyToChildren(Structure str, Func<SemanticObject, SemanticObject> map) =>
-        str with {Children = str.Children.ToDictionary(p => p.Key, p => map(p.Value))};
+        str with {Children = str.Children.Map(map)};
 
-    public static TypeObject AsTemplate(SemanticObject template)
+    public static Term AsTemplate(SemanticObject template)
     {
         SemanticObject RecTemplated(SemanticObject t) => t switch
         {
             Structure s => Template(ApplyToChildren(s, RecTemplated)),
             Word w => Template(w),
         };
-        return TypeObject.FromSemanticObject(RecTemplated(template));
+        return RecTemplated(template).ToTerm();
     }
 
     public static string Print(SemanticObject? value)
@@ -60,25 +65,31 @@ public static class Constructor
                 {
                     case "":
                         return $"{{{paramsRaw}}}";
+                    case "Number":
+                        return Print(s["value"]);
                     case "Tuple":
                         return $"({paramsRaw})";
                     case "Template":
                         return $"#{Print(s["pattern"])}";
+                    case "RecTemplate":
+                        return $"#!({Print(s["pattern"])})";
                     case "Property":
                         return $"({Print(s["object"])}).{Print(s["property"])}";
                     case "Function":
-                        return $"({Print(s["template"])}) => ({Print(s["body"])})";
-                    case "RecFunction":
-                        return $"rec {Print(s["self"])} => ({Print(s["body"])})";
+                        return $"({Print(s["template"])}) =>\n ({Print(s["body"])})";
+                    case "Rec":
+                        return $"rec {Print(s["self"])} =>\n ({Print(s["body"])})";
+                    case "LetDefine":
+                        return $"let {Print(s["template"])} = {Print(s["argument"])} in\n ({Print(s["body"])})";
                     case "And":
                         return $"({Print(s["left"])}) & ({Print(s["right"])})";
                     case "Or":
                         return $"({Print(s["left"])}) | ({Print(s["right"])})";
                     case "Match":
                         return $"match ({Print(s["argument"])}) " +
-                               $"{{ {string.Join(", ", (s["cases"] as Structure)!.Children.Select(c => Print(c.Value)))} }}";
+                               $"{{\n {string.Join(",\n ", (s["cases"] as Structure)!.Children.Select(c => PrintCase(c.Value as Structure)))} \n}}";
                     case "Application":
-                        return $"({Print(s["function"])}) ({Print(s["argument"])})";
+                        return $"({Print(s["function"])})\n({Print(s["argument"])})";
                     case "ListEnd":
                     case "ListSeq":
                         var list = new List<string>();
@@ -89,7 +100,7 @@ public static class Constructor
                             if (ss["tail"] is not Structure {Name: "ListSeq"})
                             {
                                 if (ss["tail"] is not Structure {Name: "ListEnd"})
-                                    goto def;
+                                    return $"{string.Join(" :: ", list)} :: {Print(ss["tail"])}";
                                 break;
                             }
 
@@ -105,17 +116,21 @@ public static class Constructor
             default:
                 return "undefined";
         }
+
+        string PrintCase(Structure? value) => $"({Print(value["template"])}) => ({Print(value["body"])})";
     }
 }
 
 public record StructureBuild(Structure Structure)
 {
     public static implicit operator Structure(StructureBuild structure) => structure.Structure;
+    public Structure Structure { get; private set; } = Structure;
+
     public StructureBuild Child(string key, SemanticObject child)
     {
         Structure.Children.Add(key, child);
         return this;
     }
 
-    public static StructureBuild New(string name) => new(new Structure(name, new Dictionary<string, SemanticObject>()));
+    public static StructureBuild New(string name) => new(new Structure(name, []));
 }

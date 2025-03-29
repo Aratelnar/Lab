@@ -5,21 +5,21 @@ rule(0) Expr : '#' Expr | Template{pattern:0}
 rule(0) Expr : '#!' Expr | TemplateRec{pattern:0}
 rule(0) Expr : '(' Expr ')' | 1
 rule(0) Expr : Match | 0
-rule(255.1) Expr : word | !0
-rule(1) Expr : Expr '.' word | Property{object:2,property:!0}
-rule(2) Expr : Expr Expr | Application{function:1,argument:0}
+rule(4.1r) Expr : word | !0
+rule(0) Expr : Expr '.' word | Property{object:2,property:!0}
+rule(0) Expr : Expr Expr | Application{function:1,argument:0}
 rule(3) Expr : Expr '&' Expr | And{left:2,right:0}
 rule(4) Expr : Expr '|' Expr | Or{left:2,right:0}
-rule(5) Expr : Func | 0
-rule(0) Obj : word '{' Seq '}' | !3{...1}
-rule(0) Obj : '{' Seq '}' | {...1}
-rule(0) Obj : '{' SeqE '}' | {...1}
-rule(0) Tuple : '(' Seq ')' | Tuple{...1}
-rule(0) Tuple : '(' SeqE ')' | Tuple{...1}
+rule(5r) Expr : Func | 0
+rule(4.1) Obj : word '{' Seq '}' | !3{...1}
+rule(4.1) Obj : '{' Seq '}' | {...1}
+rule(4.1) Obj : '{' SeqE '}' | {...1}
+rule(255) Tuple : '(' Seq ')' | Tuple{...1}
+rule(255) Tuple : '(' SeqE ')' | Tuple{...1}
 rule(0) Match : 'match' Expr '{' SeqF '}' | Match{argument:3,cases:1}
-rule(5) Func : Expr '=>' Expr | Function{template:2,body:0}
+rule(5r) Func : Expr '=>' Expr | Function{template:2,body:0}
 rule(0) Seq : Key Seq | KeyList{...1,...0}
-rule(0) Seq : | KeyListEnd{}
+rule(255) Seq : | KeyListEnd{}
 rule(0) SeqE : SeqE Expr ',' | List{...2,*:1}
 rule(0) SeqE : Expr ',' | ListEnd{*:1}
 rule(0) SeqF : SeqF ',' Func | FuncList{...2,*:0}

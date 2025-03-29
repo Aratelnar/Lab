@@ -36,6 +36,8 @@ public class Lexer
     private static Predicate<char> IsWord = c =>
         char.IsLetterOrDigit(c) || c == '_';
 
+    private static Predicate<char> IsNumber = char.IsDigit;
+
     public IEnumerable<Terminal> Read(string text)
     {
         var q = 0;
@@ -66,9 +68,13 @@ public class Lexer
                 continue;
             }
 
-            var word = ReadWord(text, ref wordStart);
+            var token = c switch
+            {
+                _ when IsNumber(c) => Terminal.Number(ReadNumber(text, ref wordStart)),
+                _ => Terminal.Word(ReadWord(text, ref wordStart))
+            };
             index = wordStart;
-            yield return Terminal.Word(word);
+            yield return token;
             q = 0;
         }
     }
@@ -77,6 +83,15 @@ public class Lexer
     {
         var curr = pos;
         for (; curr < text.Length && IsWord(text[curr]); curr++) ;
+        var readWord = text[pos..curr];
+        pos = curr;
+        return readWord;
+    }
+
+    private string ReadNumber(string text, ref int pos)
+    {
+        var curr = pos;
+        for (; curr < text.Length && IsNumber(text[curr]); curr++) ;
         var readWord = text[pos..curr];
         pos = curr;
         return readWord;

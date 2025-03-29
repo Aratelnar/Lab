@@ -1,4 +1,4 @@
-﻿using Lang.Parser.Semantic;
+﻿using AltLang.Parser.Semantic;
 
 namespace AltLang.Domain.Semantic;
 

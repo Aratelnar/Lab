@@ -9,6 +9,7 @@ public readonly record struct Priority(params short[] Items) : IComparable<Prior
     public bool Equals(Priority other) => Items.SequenceEqual(other.Items);
 
     public static Priority Min(Priority a, Priority b) => a < b ? a : b;
+    public Priority Abs() => new(Items.Select(Math.Abs).ToArray());
 
     public override int GetHashCode() => Items.Aggregate(0, HashCode.Combine);
     public override string ToString() => string.Join('.', Items);
@@ -32,7 +33,8 @@ public readonly record struct Priority(params short[] Items) : IComparable<Prior
         var xVal = Math.Abs(x);
         var yVal = Math.Abs(y);
         var abs = xVal.CompareTo(yVal);
-        return abs != 0 ? abs : -x.CompareTo(y);
+        if(abs != 0) return abs;
+        return -x.CompareTo(y);
     }
 
     public static bool operator >(Priority left, Priority right) => left.CompareTo(right) > 0;

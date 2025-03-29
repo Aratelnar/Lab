@@ -2,9 +2,15 @@
 using LabEntry.domain;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Linq;
+using AltLang.Domain;
 using AltLang.Domain.Semantic;
-using static AltLang.Domain.Semantic.Constructor;
+using AltLang.Domain.Semantic.Explicit;
+using Lang.Util;
+using static AltLang.Domain.Constructor;
+using Word = AltLang.Domain.Semantic.Word;
+
 namespace LabEntry.core;
 
 public class CoreDefinitionsModule : ILangModule
@@ -26,7 +32,7 @@ public class CoreDefinitionsModule : ILangModule
 
     public SemanticObject? Reduce(SemanticObject obj, ModuleContext context)
     {
-        Console.WriteLine($"[{ModuleName}][reduce] {Print(obj)}");
+        context.Log($"[{ModuleName}][reduce] {obj.ToTerm().Print()}");
         return obj switch
         {
             Structure {Name: "Calc", Children: var c} => context.Reduce(c["expr"]) switch
@@ -45,10 +51,13 @@ public class CoreDefinitionsModule : ILangModule
     public Dictionary<string, SemanticObject>?
         Match(SemanticObject template, SemanticObject obj, ModuleContext context) => null;
 
+    public (Term, Dictionary<string, Term>)? Infer(SemanticObject obj, Dictionary<string, Term> assumptions,
+        ModuleContext context) => null;
+
     public SemanticObject? Substitute(SemanticObject obj, Dictionary<string, SemanticObject> vars,
         ModuleContext context)
     {
-        Console.WriteLine($"[{ModuleName}][substitute] {Print(obj)} <<- {Print(new Structure("", vars))}");
+        context.Log($"[{ModuleName}][substitute] {obj.ToTerm().Print()} <<- {new Unknown("", vars.Map(p => p.ToTerm())).Print()}");
         switch (obj)
         {
             case Structure {Name: "LetDefine"} s:

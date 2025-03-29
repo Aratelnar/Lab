@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using LabEntry.domain;
+using AltLang.Domain.Semantic;
+using AltLang.Domain.Semantic.Explicit;
+using Word = AltLang.Domain.Semantic.Word;
 
 namespace AltLang.Template;
 
@@ -35,7 +37,8 @@ public class TemplateDictionary<T> : IReadOnlyDictionary<SemanticObject, T>
         while (queue.Count > 0)
         {
             var (state, prop, val) = queue.Dequeue();
-            if (!_treeMap.TryGetValue(new Key(state, prop, GetName(val)), out var next) &&
+            var key = new Key(state, prop, GetName(val));
+            if (!_treeMap.TryGetValue(key, out var next) &&
                 !_treeMap.TryGetValue(new Key(state, prop, null), out next)) continue;
             set.Add(next);
             if (val is not Structure {Children: var c}) continue;
@@ -58,24 +61,24 @@ public class TemplateDictionary<T> : IReadOnlyDictionary<SemanticObject, T>
             next = _treeMap[key] = _stateCount++;
         _setMap[next.ToString()] = value;
     }
-    public void Register(TypeObject type, T value)
+    public void Register(Term type, T value)
     {
         var set = new HashSet<int>();
-        var queue = new Queue<(int, string, TypeObject)>();
+        var queue = new Queue<(int, string, Term)>();
         queue.Enqueue((0, "", type));
         while (queue.Count > 0)
         {
             var (state, prop, t) = queue.Dequeue();
-            if (t is not (LabEntry.domain.Template or Var))
+            if (t is not (StructureTemplate or WordTemplate))
                 continue;
 
-            var name = (t as LabEntry.domain.Template)?.Name;
+            var name = (t as StructureTemplate)?.Name;
             var key = new Key(state, prop, name != null
                 ? new Name(name, NameType.Structure)
                 : null);
             if (!_treeMap.TryGetValue(key, out var next))
                 next = _treeMap[key] = _stateCount++;
-            if (t is LabEntry.domain.Template temp)
+            if (t is StructureTemplate temp)
                 foreach (var (k, v) in temp.Children)
                     queue.Enqueue((next, k, v));
             set.Add(next);

@@ -1,19 +1,18 @@
-﻿using AltLang.Domain.Grammar;
-using LabEntry.domain;
+﻿using System.Diagnostics.CodeAnalysis;
+using AltLang.Domain.Grammar;
+using AltLang.Domain.Semantic;
+using AltLang.Serialization.Semantic;
 using Lang.Domain;
-using Lang.Domain.Semantic;
-using Lang.RuleReader.Semantic;
 
-namespace Lang.Parser.Semantic;
+namespace AltLang.Parser.Semantic;
 
 public record SemanticAutomata
 {
     public List<SemanticRuleShort> Rules { get; set; } = new();
     public readonly Dictionary<(int, Token), Action> Actions = new();
-    public readonly Dictionary<int, Priority> ExpandPriorities = new();
 
     public NonTerminal Axiom { get; init; }
-    public HashSet<Token> KnownTokens { get; set; } = new();
+    public System.Collections.Generic.HashSet<Token> KnownTokens { get; set; } = new();
 
     public SemanticObject? Read(IList<Terminal> text)
     {
@@ -23,8 +22,7 @@ public record SemanticAutomata
         {
             var token = pos == text.Count ? Terminal.End : text[pos];
             var state = stack.Peek().Position;
-            if (!Actions.TryGetValue((state, token), out var action) &&
-                !Actions.TryGetValue((state, Terminal.Word("")), out action))
+            if (!TryGetAction(state, token, out var action))
                 return null;
             switch (action)
             {
@@ -47,6 +45,23 @@ public record SemanticAutomata
         return resultState.Data;
     }
 
+    private bool TryGetAction(int state, Token token, [MaybeNullWhen(false)]out Action action)
+    {
+        if (Actions.TryGetValue((state, token), out action)) return true;
+        return token switch
+        {
+            Terminal {Type: TerminalType.Word} => Actions.TryGetValue((state, Terminal.Word("")), out action),
+            Terminal {Type: TerminalType.Number} => Actions.TryGetValue((state, Terminal.Number("")), out action),
+            _ => false
+        };
+    }
+
+    private Action GetAction(Stack<State> stack, Token token)
+    {
+        var state = stack.Peek();
+        return TryGetAction(state.Position, token, out var action) ? action : throw new Exception($"Unknown action: {token}");
+    }
+
     private void TryReduce(Stack<State> stack, Token token)
     {
         var reduce = GetAction(stack, token) as Reduce;
@@ -65,15 +80,6 @@ public record SemanticAutomata
     {
         var shift = GetAction(stack, token) as Shift;
         stack.Push(new State(shift!.NextState, token, data));
-    }
-
-    private Action GetAction(Stack<State> stack, Token token)
-    {
-        var state = stack.Peek();
-        return Actions.TryGetValue((state.Position, token), out var action) ||
-               Actions.TryGetValue((state.Position, Terminal.Word("")), out action)
-            ? action
-            : throw new Exception();
     }
 
     private record State(int Position, Token Token, SemanticObject? Data);

@@ -65,6 +65,9 @@
       <None Update="modules\Core.Recursive.alth">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="modules\Core.Numbers.alth">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -85,6 +88,9 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Compile>
       <Compile Update="modules\Core.Recursive.alt.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="modules\Core.Numbers.alt.cs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Compile>
     </ItemGroup>

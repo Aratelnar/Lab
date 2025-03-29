@@ -1,4 +1,4 @@
-﻿using Lang.RuleReader.Semantic;
+﻿using AltLang.Serialization.Semantic;
 using Lang.Util.RecordCollections;
 
 namespace AltLang.Domain.Grammar.Rules;

@@ -43,7 +43,11 @@ public record Prioritized<TPoint>(TPoint Core, Priority Priority) : IPoint<Prior
     {
         return Core.Closure(grammar, firstSet).Select(r => new Prioritized<TPoint>(r, GetPriority(r)));
 
-        Priority GetPriority(TPoint point) => point.Rule.Lift<IRulePrioritized>().Priority;
+        Priority GetPriority(TPoint point)
+        {
+            var priority = point.Rule.Lift<IRulePrioritized>().Priority;
+            return priority;
+        }
     }
 
     public string ToKey() => Core.ToKey();

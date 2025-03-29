@@ -1,13 +1,11 @@
 ﻿using System.Text.RegularExpressions;
 using AltLang.Domain.Grammar;
 using AltLang.Domain.Grammar.Rules;
-using LabEntry.domain;
+using AltLang.Domain.Semantic;
+using AltLang.Serialization.Semantic;
 using Lang.Domain;
-using Lang.Domain.Semantic;
-using Lang.RuleReader.Semantic;
-using Lang.Util;
 
-namespace Lang.RuleReader;
+namespace AltLang.Serialization;
 
 public class RuleReader
 {
@@ -27,9 +25,12 @@ public class RuleReader
         var source = new NonTerminal(tokens[0]);
         var t = tokens[2..].Select(s => s[0] == '\''
                 ? (Token) Terminal.Keyword(s[1..^1])
-                : s == "word"
-                    ? Terminal.Word("")
-                    : new NonTerminal(s))
+                : s switch
+                {
+                    "word" => Terminal.Word(""),
+                    "number" => Terminal.Number(""),
+                    _ => new NonTerminal(s),
+                })
             .ToList();
         return new Prioritized<Rule>(new Rule(source, t), new Priority(priority));
     }

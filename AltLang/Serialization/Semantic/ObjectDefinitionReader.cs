@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.RegularExpressions;
 
-namespace Lang.RuleReader.Semantic;
+namespace AltLang.Serialization.Semantic;
 
 public static class ObjectDefinitionReader
 {

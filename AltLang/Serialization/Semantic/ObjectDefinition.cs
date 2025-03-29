@@ -1,5 +1,5 @@
 ﻿
-namespace Lang.RuleReader.Semantic;
+namespace AltLang.Serialization.Semantic;
 
 public abstract record ObjectDefinition;
 

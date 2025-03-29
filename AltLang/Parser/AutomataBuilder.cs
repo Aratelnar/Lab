@@ -1,10 +1,10 @@
 ﻿using AltLang.Domain.Grammar;
 using AltLang.Domain.Grammar.Rules;
+using AltLang.Parser.Semantic;
 using Lang.Domain;
 using Lang.Domain.Semantic;
 using Lang.GrammarTransform;
 using Lang.Parser.LRAutomata;
-using Lang.Parser.Semantic;
 using Lang.Util.RecordCollections;
 
 namespace Lang.Parser;
@@ -58,7 +58,8 @@ public class AutomataBuilder
         }
 
         int end;
-        if (!lr.Transitions[lr.InitialState.ToString()].TryGetValue(grammar.Axiom, out var e) || (end = stateToId[e]) < 0)
+        if (!lr.Transitions[lr.InitialState.ToString()].TryGetValue(grammar.Axiom, out var e) ||
+            (end = stateToId[e]) < 0)
         {
             automata.Actions[(0, grammar.Axiom)] = new Automata.Shift(++counter);
             end = counter;
@@ -75,6 +76,7 @@ public class AutomataBuilder
         {
             Axiom = grammar.Axiom
         };
+
         var rules = grammar.Rules
             .Select(r => r.Lift<IRuleSemantic>())
             .Select(r => new SemanticRuleShort(r.Source, (byte) r.Tokens.Count, r.Reduce))
@@ -86,6 +88,7 @@ public class AutomataBuilder
         automata.Rules = rules;
         automata.KnownTokens = grammar.Rules
             .SelectMany(r => r.Tokens)
+            .Concat([Terminal.End, Terminal.Lambda])
             .ToHashSet();
 
         var lr = BuildLRAutomata<LaLr1State>(grammar);
@@ -100,13 +103,15 @@ public class AutomataBuilder
         while (queue.Count > 0)
         {
             var (q, state) = queue.Dequeue();
-            foreach (var point in state.Rules.OrderByDescending(r => r.Priority))
+            foreach (var point in state.Rules
+                         .OrderByDescending(r => r.Pointer == r.Rule.Tokens.Count ? r.Priority : r.Priority.Abs())
+                         .ThenBy(r => r.Pointer))
                 if (point.Pointer == point.Rule.Tokens.Count)
                 {
+                    var reduceAction = new SemanticAutomata.Reduce(ruleNameToIndex[point.Rule.ToKey()], point.Priority);
                     foreach (var terminal in point.Core.Terminals)
-                        automata.Actions[(q, terminal)] =
-                            new SemanticAutomata.Reduce(ruleNameToIndex[point.Rule.ToKey()],
-                                point.Priority);
+                        automata.Actions[(q, terminal)] = reduceAction;
+                    automata.Actions[(q, Terminal.Lambda)] = reduceAction;
                 }
                 else
                 {
@@ -124,7 +129,8 @@ public class AutomataBuilder
         }
 
         int end;
-        if (!lr.Transitions[lr.InitialState.ToString()].TryGetValue(grammar.Axiom, out var e) || (end = stateToId[e]) < 0)
+        if (!lr.Transitions[lr.InitialState.ToString()].TryGetValue(grammar.Axiom, out var e) ||
+            (end = stateToId[e]) < 0)
         {
             automata.Actions[(0, grammar.Axiom)] = new SemanticAutomata.Shift(++counter, Priority.Default);
             end = counter;
@@ -161,7 +167,7 @@ public class AutomataBuilder
     {
         if (automataList.Length == 1) return automataList[0];
         var result = new SemanticAutomata {Axiom = automataList.First().Axiom};
-        var tokens = new HashSet<Token> {Terminal.End};
+        var tokens = new HashSet<Token> {Terminal.End, Terminal.Lambda};
         foreach (var automata in automataList)
             tokens.UnionWith(automata.KnownTokens);
         result.KnownTokens = tokens;
@@ -199,7 +205,7 @@ public class AutomataBuilder
             {
                 return automataList[p.au].Actions.TryGetValue((p.st, token), out var act) ||
                        (!automataList[p.au].KnownTokens.Contains(token) &&
-                        automataList[p.au].Actions.TryGetValue((p.st, Terminal.End), out act))
+                        automataList[p.au].Actions.TryGetValue((p.st, Terminal.Lambda), out act))
                     ? [(p.au, act)]
                     : [];
             }

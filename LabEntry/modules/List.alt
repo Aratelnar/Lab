@@ -1,3 +1,4 @@
 ﻿(
     reduce (#List => #ListSeq{head:#_,tail:#_,} | #ListEnd{}),
+    (#[] ::: (rec t. (#[] | (#t0 :: t)))
 )

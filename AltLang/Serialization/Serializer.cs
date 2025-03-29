@@ -3,11 +3,10 @@ using System.Collections.ObjectModel;
 using System.Text;
 using AltLang.Domain.Grammar;
 using AltLang.Domain.Semantic;
-using LabEntry.domain;
+using AltLang.Parser.Semantic;
+using AltLang.Serialization.Semantic;
 using Lang.Domain;
 using Lang.Domain.Semantic;
-using Lang.Parser.Semantic;
-using Lang.RuleReader.Semantic;
 
 namespace Lang.RuleReader;
 
@@ -207,10 +206,11 @@ public static class Serializer
         var knownTokens = new HashSet<Token>();
         var count = reader.ReadByte();
         for (var i = 0; i < count; i++) knownTokens.Add(ReadToken(reader));
+
         var automata = new SemanticAutomata
         {
             Rules = ReadRules(reader).ToList(),
-            KnownTokens = knownTokens
+            KnownTokens = knownTokens,
         };
         reader.ReadByte();
         ReadAction(reader, automata.Actions);

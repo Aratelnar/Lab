@@ -1,21 +1,12 @@
-﻿using System.CodeDom.Compiler;
-using System.Diagnostics;
-using System.Net;
+﻿using System.Diagnostics;
 using System.Reflection;
-using System.Security.Authentication.ExtendedProtection;
-using System.Text.RegularExpressions;
 using AltLang;
-using AltLang.Domain.Grammar;
 using AltLang.Domain.Semantic;
-using Antlr4.Runtime;
-using LabEntry.core;
-using LabEntry.domain;
+using AltLang.Domain.Semantic.Explicit;
+using AltLang.Parser.Semantic;
 using Lang.Domain;
-using Lang.Domain.Semantic;
-using Lang.GrammarTransform;
+using Lang.Domain.TypeSystem;
 using Lang.Parser;
-using Lang.Parser.LRAutomata;
-using Lang.Parser.Semantic;
 using Lang.RuleReader;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -37,15 +28,12 @@ internal class Program
         //     Console.WriteLine($"{key}: {value}");
         // }
 
-        var sw = new Stopwatch();
         var modules = new List<Module>();
         foreach (var headerFile in Directory.EnumerateFiles("modules", "*.alth", SearchOption.AllDirectories))
         {
-            sw.Start();
             var name = Path.GetFileNameWithoutExtension(headerFile);
-            var module = ModuleReader.ReadModule(name, File.ReadAllText(headerFile));
-            Console.WriteLine($"Read module {name} in {sw.ElapsedMilliseconds}ms");
-            sw.Reset();
+            var text = File.ReadAllText(headerFile);
+            var module = ModuleReader.ReadModule(name, text);
             modules.Add(module);
         }
 
@@ -71,40 +59,54 @@ internal class Program
             var text = lexer.Read(line).ToList();
             var value = finalAutomata.Read(text);
             if (value is Structure {Name: "Reduce" or "Define"})
-            {
-                currentModule.Reducers.Add(value);
-                switch (value)
-                {
-                    case Structure {Name: "Reduce", Children: { } cc}:
-                        if (!cc.TryGetValue("rule", out var rule)) continue;
-                        if (rule is not Structure {Name: "Function"} s) continue;
-                        context.ModuleToReduce.Register(TypeObject.FromSemanticObject(s["template"]), currentModule);
-                        break;
-                    case Structure {Name: "Define", Children: { } cc2}:
-                        if (!cc2.TryGetValue("name", out var name) || name is not Word w) continue;
-                        context.ModuleToReduce.RegisterWord(w, currentModule);
-                        break;
-                }
-            }
+                currentModule.AddReducer(value, context);
+
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(Constructor.Print(value));
-            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine(value?.ToTerm().Print());
             if (value != null)
-                Console.WriteLine(Constructor.Print(context.Reduce(value)));
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($":t {InferType(value, context)?.Print()}");
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                var reduce = context.Reduce(value);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(reduce.ToTerm().Print());
+            }
+
             Console.ForegroundColor = ConsoleColor.Gray;
+        }
+    }
+
+    private static Term? InferType(SemanticObject reduce, ModuleContext context)
+    {
+        try
+        {
+            var (type, _) = context.Infer(reduce, []) ?? throw new TypeException();
+            return context.TypeResolver.Subst1(type);
+        }
+        catch(Exception e)
+        {
+            // Console.WriteLine(e.Message);
+            return null;
         }
     }
 
     private static (List<ILangModule> reducers, SemanticAutomata finalAutomata) BuildReducers(List<Module> modules)
     {
+        var sw = new Stopwatch();
         var automatas = new Dictionary<string, SemanticAutomata>();
         var reducers = new List<ILangModule>();
         foreach (var module in TopSort(modules.ToDictionary(m => m.Name)))
         {
+            sw.Restart();
             var automata = AutomataBuilder.MergeAutomata(module.Imports.Select(automatas.GetValueOrDefault)
                 .Append(module.Automata).ToArray()!);
+            Console.WriteLine($"  [{module.Name}] automata merged in {sw.ElapsedMilliseconds}ms");
             automatas[module.Name] = automata;
             reducers.Add(CreateReducer(module.Name, automata));
+            Console.WriteLine($"  [{module.Name}] reducer created in {sw.ElapsedMilliseconds}ms");
+            sw.Stop();
+            Console.WriteLine($"    [{module.Name}] has been built in {sw.ElapsedMilliseconds}ms");
         }
 
         return (reducers, automatas[modules.Last().Name]);
@@ -114,7 +116,8 @@ internal class Program
     {
         var path = Directory.EnumerateFiles("modules/", $"{moduleName}.alth").FirstOrDefault("");
         if (moduleName == "Core") return new CoreModule();
-        if (moduleName == "Core.Definitions") return new CoreDefinitionsModule();
+        // if (moduleName == "Core.Definitions") return new CoreDefinitionsModule();
+        // if (moduleName == "Core.Numbers") return new CoreNumbersModule();
         if (File.Exists(path.Replace(".alth", ".alt")))
         {
             var rText = File.ReadAllText(path.Replace(".alth", ".alt"));
@@ -132,7 +135,7 @@ internal class Program
             var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(path.Replace(".alth", ".alt.cs")));
             var references = AppDomain.CurrentDomain
                 .GetAssemblies()
-                .Where(a => !a.IsDynamic)
+                // .Where(a => !a.IsDynamic)
                 .Select(a => a.Location)
                 .Where(s => !string.IsNullOrEmpty(s))
                 .Where(s => !s.Contains("xunit"))
@@ -149,7 +152,7 @@ internal class Program
             return (ILangModule) Activator.CreateInstance(type)!;
         }
 
-        return new AltModule("MainProgram", new Structure("Tuple", new Dictionary<string, SemanticObject>()));
+        return new AltModule("MainProgram", new Structure("Tuple", []));
     }
 
     private static IEnumerable<Module> TopSort(Dictionary<string, Module> modules)

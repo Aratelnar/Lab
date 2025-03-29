@@ -1,2 +1,2 @@
 ﻿import Core
-rule Expr : 'rec' word '=>' Expr | RecFunction{self:Template{pattern:!2},body:0}
+rule(7) Expr : 'rec' word '.' Expr | Rec{self:!2,body:0}

@@ -1,26 +1,36 @@
 ﻿(
     reduce ((#Bool) => #True | #False),
     (def id = (#a => a)),
-    (def map = (rec self => #!(f,list,) => match (list) {
-        #!(head :: tail) => ((f head) :: (self (f,tail,))),
-        #[] => []
+    (def or = (#p => match (p) {
+        #!(True,_,)=>True,
+        #!(False,n,)=>n
     })),
-    (def zip = (rec self => #list =>
+    (def map = (#f => (rec self . #list => match (list) {
+        #[] => [],
+        #!(head :: tail) => ((f head) :: (self tail))
+    }))),
+    (def fold = (#f => #z => (rec self . #list => match (list) {
+        #![] => z,
+        #!(head :: tail) => f (head, self tail,)
+    }))),
+    (def any = (#!(pred, list,) => (fold or) False (map pred list))),
+    (def zip = (rec self . #list =>
         let #safeTail = (#l => match (l) {
             #!(_::t1)=>t1,
             #[] => None{}
-        }) in (
+        }) in
         let #safeHead = (#l => match (l) {
             #!(h1::_)=>h1,
             #[] => None{}
-        }) in (
-        let #h = map (safeHead,list,) in (
-        let #t = map (safeTail,list,) in (
+        }) in
+        let #h = map safeHead list in
+        let #t = map safeTail list in
             match (h) {
-                            #[] => [],
-                            #!(None{}::_) => h,
-                            #!(_::_)=>(h :: (self t))
-                        }
-        ))))
+                #[] => [],
+                #!(None{}::_) => [],
+                #!(_::_)=>(h :: (self t))
+            }
+
     )),
+    (def add = (#!(a,b,) => a+b)),
 )
