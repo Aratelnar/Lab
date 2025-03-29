@@ -1,5 +1,4 @@
 ﻿using AltLang;
-using LabEntry.domain;
 using static AltLang.Domain.Constructor;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,6 @@ using AltLang.Domain.Semantic;
 using AltLang.Domain.Semantic.Explicit;
 using Lang.Domain.TypeSystem;
 using Lang.Util;
-using Function = LabEntry.domain.Function;
 using Structure = AltLang.Domain.Semantic.Structure;
 using Word = AltLang.Domain.Semantic.Word;
 

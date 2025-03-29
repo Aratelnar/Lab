@@ -1,5 +1,5 @@
 ﻿import Core
-rule(4.1) Expr : number | Number{value:!0}
+rule(0) Expr : number | Number{value:!0}
 rule(2.2) Expr : Expr '+' Expr | Plus{left:2,right:0}
 rule(2.1) Expr : Expr '*' Expr | Star{left:2,right:0}
 rule(2.2) Expr : Expr '-' Expr | Minus{left:2,right:0}
