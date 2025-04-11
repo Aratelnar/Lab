@@ -3,6 +3,7 @@ rule(0) Expr : word | !0
 rule(0) Expr : Obj | 0
 rule(0) Expr : '#' Expr | Template{pattern:0}
 rule(0) Expr : '#!' Expr | TemplateRec{pattern:0}
+rule(0) Expr : '@' Expr | Name{pattern:0}
 rule(0) Expr : '(' Expr ')' | 1
 rule(0) Expr : Expr '.' word | Property{object:2,property:!0}
 rule(0) Expr : Tuple | 0

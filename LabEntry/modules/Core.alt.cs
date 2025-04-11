@@ -29,6 +29,7 @@ public record CoreModule : ILangModule
         context.ModuleToMatch.Register(AsTemplate(TemplateRec(Any)), this);
         context.ModuleToMatch.Register(AsTemplate(And(Any, Any)), this);
         context.ModuleToMatch.Register(AsTemplate(Or(Any, Any)), this);
+        context.ModuleToMatch.Register(AsTemplate(Name(Any)), this);
 
         context.ModuleToInfer.Register(AsTemplate(Template(Any)), this);
         context.ModuleToInfer.Register(AsTemplate(TemplateRec(Any)), this);
@@ -124,40 +125,33 @@ public record CoreModule : ILangModule
     public Dictionary<string, SemanticObject>? Match(SemanticObject template, SemanticObject obj, ModuleContext context)
     {
         context.Log($"[{ModuleName}][match] {template.ToTerm().Print()} <<= {obj.ToTerm().Print()}");
-        var match = template switch
-        {
-            Structure {Name: "Template"} s => MatchTemplate(s, obj, context),
-            Structure {Name: "RecTemplate"} s => MatchTemplate(context.Reduce(s) as Structure, obj, context),
-            Structure {Name: "And"} s => (context.Match(s["left"], obj), context.Match(s["right"], obj)) switch
-            {
-                (null, _) => null,
-                (_, null) => null,
-                var (left, right) => left.Concat(right).GroupBy(p => p.Key)
-                    .ToDictionary(g => g.Key, g => g.Last().Value)
-            },
-            Structure {Name: "Or"} s => context.Match(s["left"], obj) ?? context.Match(s["right"], obj),
-            _ => null
-        };
+        var match = SelectMatch(template, obj);
         if (match is null)
         {
             obj = context.Reduce(obj);
-            match = template switch
+            match = SelectMatch(template, obj);
+        }
+
+        return match;
+
+        Dictionary<string, SemanticObject>? SelectMatch(SemanticObject semanticObject, SemanticObject o)
+        {
+            return semanticObject switch
             {
-                Structure {Name: "Template"} s => MatchTemplate(s, obj, context),
-                Structure {Name: "RecTemplate"} s => MatchTemplate(context.Reduce(s) as Structure, obj, context),
-                Structure {Name: "And"} s => (context.Match(s["left"], obj), context.Match(s["right"], obj)) switch
+                Structure {Name: "Template"} s => MatchTemplate(s, o, context),
+                Structure {Name: "RecTemplate"} s => MatchTemplate(context.Reduce(s) as Structure, o, context),
+                Structure {Name: "And"} s => (context.Match(s["left"], o), context.Match(s["right"], o)) switch
                 {
                     (null, _) => null,
                     (_, null) => null,
                     var (left, right) => left.Concat(right).GroupBy(p => p.Key)
                         .ToDictionary(g => g.Key, g => g.Last().Value)
                 },
-                Structure {Name: "Or"} s => context.Match(s["left"], obj) ?? context.Match(s["right"], obj),
+                Structure {Name: "Or"} s => context.Match(s["left"], o) ?? context.Match(s["right"], o),
+                Structure {Name: "Name"} s => obj.GetName() == s["pattern"].GetName() ? [] : null,
                 _ => null
             };
         }
-
-        return match;
     }
 
     private Dictionary<string, SemanticObject>? MatchTemplate(Structure template, SemanticObject obj,

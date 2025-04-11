@@ -36,8 +36,17 @@ public static partial class Constructor
     public static Structure Or(SemanticObject left, SemanticObject right) =>
         new("Or", new Dictionary<string, SemanticObject> {["left"] = left, ["right"] = right});
 
+    public static Structure Name(SemanticObject obj) =>
+        new("Name", new Dictionary<string, SemanticObject> {["pattern"] = obj});
+
     public static Word Word(string name) => new(name);
     public static Word Any => new("");
+
+    public static string GetName(this SemanticObject obj) => obj switch
+    {
+        Structure s => s.Name,
+        Word w => w.Name
+    };
 
     public static Structure ApplyToChildren(Structure str, Func<SemanticObject, SemanticObject> map) =>
         str with {Children = str.Children.Map(map)};

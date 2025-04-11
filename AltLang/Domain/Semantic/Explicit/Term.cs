@@ -26,6 +26,8 @@ public record StructureTemplate(string Name, Dictionary<string, Term> Children) 
 
 public record WordTemplate(string Name) : Term;
 
+public record NameTemplate(string Name) : Term;
+
 public record AnyTemplate : Term;
 
 public record Match(Term Argument, List<Function> Cases) : Term;
@@ -74,6 +76,7 @@ public static class TermExtensions
         Structure {Name: "ListSeq"} s => new ListSeq(s["head"].ToTerm(), s["tail"].ToTerm()),
         Structure {Name: "LetDefine"} s => new Let(s["template"].ToTerm(), s["argument"].ToTerm(), s["body"].ToTerm()),
         Structure {Name: "Number"} s => new Number(int.Parse((s["value"] as SWord).Name)),
+        Structure {Name: "Name"} s => new NameTemplate(s["pattern"].GetName()),
         Structure s => new Unknown(s.Name, s.Children.Map(ToTerm))
     };
 
@@ -96,6 +99,7 @@ public static class TermExtensions
             children.Map(ToObject))),
         Word(var name) => Word(name),
         WordTemplate(var name) => Constructor.Template(Word(name)),
+        NameTemplate(var name) => Name(Word(name)),
         ListEnd => new Structure("ListEnd", []),
         ListSeq(var head, var tail) => StructureBuild.New("ListSeq")
             .Child("head", head.ToObject())
@@ -121,6 +125,7 @@ public static class TermExtensions
         AnyTemplate => "any",
         StructureTemplate(var name, var children) =>
             $"(#{name}{{{string.Join(", ", children.Select(p => $"{p.Key}: {p.Value.Print()}"))}}})",
+        NameTemplate(var name) => $"@{name}",
         Word(var name) => name,
         ListEnd => "[]",
         ListSeq list => PrintList(list),
