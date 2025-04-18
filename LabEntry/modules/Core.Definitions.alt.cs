@@ -1,8 +1,8 @@
-﻿using AltLang;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
+using AltLang;
 using AltLang.Domain;
 using AltLang.Domain.Semantic;
 using AltLang.Domain.Semantic.Explicit;

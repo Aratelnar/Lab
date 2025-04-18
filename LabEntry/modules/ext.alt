@@ -22,4 +22,8 @@
         }
     )),
     (def add = (#!(a,b,) => a+b)),
+    (def repl = (#val => rec self. #expr => match (expr) {
+        #(##@a => #_)&#f => (f val),
+        #else => rho self else
+    })),
 )

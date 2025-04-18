@@ -1,0 +1,2 @@
+﻿import Core
+rule(0) Expr : 'rho' Expr | Rho{expr:0}

@@ -3,6 +3,7 @@ using System.Reflection;
 using AltLang;
 using AltLang.Domain.Semantic;
 using AltLang.Parser.Semantic;
+using LabEntry.core;
 using Lang.Domain;
 using Lang.Lexer;
 using Lang.Parser;
@@ -46,9 +47,10 @@ public static class Compiler
 
     private static ILangModule CreateReducer(string moduleName, string modulePath, SemanticAutomata automata)
     {
-        // if (moduleName == "Core") return new CoreModule();
-        // if (moduleName == "Core.Definitions") return new CoreDefinitionsModule();
-        // if (moduleName == "Core.Numbers") return new CoreNumbersModule();
+        if (moduleName == "Core") return new CoreModule();
+        if (moduleName == "Core.Definitions") return new CoreDefinitionsModule();
+        if (moduleName == "Core.Numbers") return new CoreNumbersModule();
+        if (moduleName == "Core.Macro") return new CoreMacroModule();
         if (File.Exists(modulePath.Replace(".alth", ".alt")))
         {
             var rText = File.ReadAllText(modulePath.Replace(".alth", ".alt"));

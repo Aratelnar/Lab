@@ -1,13 +1,13 @@
-﻿using AltLang;
-using static AltLang.Domain.Constructor;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AltLang;
 using AltLang.Domain.Semantic;
 using AltLang.Domain.Semantic.Explicit;
 using Lang.Domain.TypeSystem;
 using Lang.Util;
+using static AltLang.Domain.Constructor;
 using Structure = AltLang.Domain.Semantic.Structure;
 using Word = AltLang.Domain.Semantic.Word;
 

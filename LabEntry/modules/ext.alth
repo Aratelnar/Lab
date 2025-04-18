@@ -2,6 +2,7 @@
 import List
 import Core.Recursive
 import Core.Numbers
+import Core.Macro
 rule(0) Expr : 'Bool' | Bool{}
 rule(0) Expr : 'True' | True{}
 rule(0) Expr : 'False' | False{}
